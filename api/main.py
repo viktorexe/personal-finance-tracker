@@ -119,8 +119,13 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# Get the directory of the current file
+import pathlib
+BASE_DIR = pathlib.Path(__file__).parent.parent
+
+# Mount static files and templates with absolute paths
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # Helper functions
 def verify_password(plain_password, hashed_password):
@@ -184,7 +189,66 @@ async def root(request: Request):
         return templates.TemplateResponse("index.html", {"request": request})
     except Exception as e:
         print(f"Error rendering index: {e}")
-        return HTMLResponse(content="<html><body><h1>Finance Tracker</h1><p>There was an error loading the application. Please try again later.</p></body></html>")
+        html_content = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Personal Finance Tracker</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    background-color: #f5f7fa;
+                }
+                .container {
+                    max-width: 800px;
+                    padding: 2rem;
+                    background-color: white;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    text-align: center;
+                }
+                h1 {
+                    color: #4361ee;
+                    margin-bottom: 1rem;
+                }
+                p {
+                    margin-bottom: 1.5rem;
+                }
+                .btn {
+                    display: inline-block;
+                    background-color: #4361ee;
+                    color: white;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 4px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    transition: background-color 0.3s;
+                }
+                .btn:hover {
+                    background-color: #3f37c9;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Personal Finance Tracker</h1>
+                <p>Track your income and expenses, view financial statistics, and manage your budget.</p>
+                <p>Login or create an account to get started.</p>
+                <a href="/" class="btn">Refresh Page</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
 
 @app.get("/health")
 async def health_check():
