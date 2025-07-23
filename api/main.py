@@ -138,10 +138,6 @@ async def root(request: Request):
 async def health_check():
     return {"status": "ok", "message": "API is running"}
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "message": "API is running"}
-
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
