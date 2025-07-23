@@ -24,6 +24,14 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/api/token",
+      "dest": "/api/main.py"
+    },
+    {
+      "src": "/api/register",
+      "dest": "/api/main.py"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/main.py"
     },
@@ -33,14 +41,6 @@
     },
     {
       "src": "/test",
-      "dest": "/api/main.py"
-    },
-    {
-      "src": "/token",
-      "dest": "/api/main.py"
-    },
-    {
-      "src": "/register",
       "dest": "/api/main.py"
     },
     {
