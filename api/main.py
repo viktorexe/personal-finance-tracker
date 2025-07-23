@@ -258,6 +258,10 @@ async def health_check():
 async def test_route():
     return {"message": "Test route is working", "timestamp": str(datetime.utcnow())}
 
+@app.get("/api/test")
+async def api_test_route():
+    return {"message": "API test route is working", "timestamp": str(datetime.utcnow()), "mongodb_status": "connected" if db else "disconnected"}
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
