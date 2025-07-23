@@ -24,6 +24,10 @@
     {
       "src": "register.js",
       "use": "@vercel/static"
+    },
+    {
+      "src": "login.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
