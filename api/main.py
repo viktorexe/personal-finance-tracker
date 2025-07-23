@@ -59,7 +59,14 @@ class Budget(BaseModel):
     category_budgets: dict
 
 # App setup
-app = FastAPI()
+app = FastAPI(
+    title="Personal Finance Tracker API",
+    description="API for tracking personal finances with MongoDB integration",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
+)
 
 # Configure CORS
 app.add_middleware(
