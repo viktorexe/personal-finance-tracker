@@ -16,6 +16,10 @@
     {
       "src": "dashboard.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api_test.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
