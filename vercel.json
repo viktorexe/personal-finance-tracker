@@ -20,12 +20,20 @@
     {
       "src": "api_test.js",
       "use": "@vercel/static"
+    },
+    {
+      "src": "register.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
       "dest": "/static/$1"
+    },
+    {
+      "src": "/api/direct-register",
+      "dest": "/api/main.py"
     },
     {
       "src": "/api/token",

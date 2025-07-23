@@ -123,6 +123,9 @@ app.add_middleware(
 # Include routers
 app.include_router(direct_register_router, prefix="/api")
 
+# Include routers
+app.include_router(direct_register_router, prefix="/api")
+
 # Get the directory of the current file
 import pathlib
 BASE_DIR = pathlib.Path(__file__).parent.parent
