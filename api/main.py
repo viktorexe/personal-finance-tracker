@@ -11,6 +11,7 @@ from typing import Optional
 from pydantic import BaseModel
 import motor.motor_asyncio
 import os
+import mangum
 from mangum import Mangum
 
 # MongoDB connection
