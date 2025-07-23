@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker Dashboard</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            background-color: #4361ee;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .btn {
+            background-color: #3f37c9;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #4361ee;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        .summary {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .summary-item {
+            text-align: center;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 0.5rem;
+        }
+        .summary-item h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .summary-item p {
+            margin: 0.5rem 0 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .income {
+            color: #4caf50;
+        }
+        .expense {
+            color: #f44336;
+        }
+        .balance {
+            color: #4361ee;
+        }
+        .chart-container {
+            height: 300px;
+            margin-top: 1rem;
+        }
+        .auth-message {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <i class="fas fa-wallet"></i> Finance Tracker
+        </div>
+        <div class="user-info">
+            <span id="username">Loading...</span>
+            <button id="logoutBtn" class="btn">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="authMessage" class="auth-message" style="display: none;">
+            <h2>Authentication Required</h2>
+            <p>Please log in to access your dashboard.</p>
+            <a href="/" class="btn">Go to Login</a>
+        </div>
+
+        <div id="dashboardContent" class="dashboard-content">
+            <div class="card">
+                <h2>Financial Summary</h2>
+                <div class="summary">
+                    <div class="summary-item">
+                        <h3>Income</h3>
+                        <p id="totalIncome" class="income">$0.00</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Expenses</h3>
+                        <p id="totalExpenses" class="expense">$0.00</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Balance</h3>
+                        <p id="balance" class="balance">$0.00</p>
+                    </div>
+                </div>
+                <button id="addTransactionBtn" class="btn">Add Transaction</button>
+            </div>
+
+            <div class="card">
+                <h2>Expense Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Monthly Overview</h2>
+                <div class="chart-container">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+            
+            if (!token) {
+                document.getElementById('authMessage').style.display = 'block';
+                document.getElementById('dashboardContent').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('username').textContent = username;
+            
+            // Logout functionality
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                window.location.href = '/';
+            });
+            
+            // Fetch financial data
+            async function fetchStats() {
+                try {
+                    const response = await fetch('/api/stats', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const stats = await response.json();
+                        
+                        // Update summary
+                        document.getElementById('totalIncome').textContent = formatCurrency(stats.total_income);
+                        document.getElementById('totalExpenses').textContent = formatCurrency(stats.total_expenses);
+                        document.getElementById('balance').textContent = formatCurrency(stats.balance);
+                        
+                        // Create charts
+                        createExpenseChart(stats.expenses_by_category);
+                        createMonthlyChart();
+                    } else {
+                        console.error('Failed to fetch stats');
+                    }
+                } catch (error) {
+                    console.error('Error fetching stats:', error);
+                }
+            }
+            
+            // Format currency
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(amount);
+            }
+            
+            // Create expense chart
+            function createExpenseChart(expensesByCategory) {
+                const ctx = document.getElementById('expenseChart').getContext('2d');
+                
+                const labels = expensesByCategory.map(item => item._id);
+                const data = expensesByCategory.map(item => item.total);
+                
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: [
+                                '#4361ee',
+                                '#3f37c9',
+                                '#4cc9f0',
+                                '#4caf50',
+                                '#ff9800',
+                                '#f44336'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+            
+            // Create monthly chart
+            function createMonthlyChart() {
+                const ctx = document.getElementById('monthlyChart').getContext('2d');
+                
+                // Sample data - in a real app, this would come from the API
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                const incomeData = [1200, 1300, 1400, 1300, 1500, 1600];
+                const expenseData = [900, 1000, 1100, 950, 1200, 1100];
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [
+                            {
+                                label: 'Income',
+                                data: incomeData,
+                                backgroundColor: '#4caf50'
+                            },
+                            {
+                                label: 'Expenses',
+                                data: expenseData,
+                                backgroundColor: '#f44336'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Add transaction button
+            document.getElementById('addTransactionBtn').addEventListener('click', () => {
+                alert('This feature is coming soon!');
+            });
+            
+            // Initialize
+            fetchStats();
+        });
+    </script>
+</body>
+</html>
