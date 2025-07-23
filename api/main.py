@@ -277,8 +277,51 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/api/token")
+async def api_login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/register")
 async def register(username: str = Form(...), password: str = Form(...)):
+    user_exists = await db.users.find_one({"username": username})
+    if user_exists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    hashed_password = get_password_hash(password)
+    user = {"username": username, "hashed_password": hashed_password}
+    await db.users.insert_one(user)
+    
+    # Create a user-specific collection for all user data
+    user_collection = db[f"user_{username}"]
+    
+    # Create initial settings for the user
+    settings = {
+        "type": "settings",
+        "currency": "USD",
+        "theme": "light",
+        "categories": ["Food", "Transport", "Housing", "Entertainment", "Utilities", "Other"],
+        "last_updated": datetime.utcnow()
+    }
+    await user_collection.insert_one(settings)
+    
+    return {"message": "User registered successfully"}
+
+@app.post("/api/register")
+async def api_register(username: str = Form(...), password: str = Form(...)):
     user_exists = await db.users.find_one({"username": username})
     if user_exists:
         raise HTTPException(
