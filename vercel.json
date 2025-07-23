@@ -12,6 +12,10 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "dashboard.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -41,7 +45,7 @@
     },
     {
       "src": "/dashboard",
-      "dest": "/api/main.py"
+      "dest": "/dashboard.html"
     },
     {
       "src": "/",
