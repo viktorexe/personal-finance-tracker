@@ -322,6 +322,40 @@ async def register(username: str = Form(...), password: str = Form(...)):
 
 @app.post("/api/register")
 async def api_register(username: str = Form(...), password: str = Form(...)):
+    try:
+        print(f"API Register attempt for user: {username}")
+        user_exists = await db.users.find_one({"username": username})
+        if user_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already registered"
+            )
+        
+        hashed_password = get_password_hash(password)
+        user = {"username": username, "hashed_password": hashed_password}
+        await db.users.insert_one(user)
+        
+        # Create a user-specific collection for all user data
+        user_collection = db[f"user_{username}"]
+        
+        # Create initial settings for the user
+        settings = {
+            "type": "settings",
+            "currency": "USD",
+            "theme": "light",
+            "categories": ["Food", "Transport", "Housing", "Entertainment", "Utilities", "Other"],
+            "last_updated": datetime.utcnow()
+        }
+        await user_collection.insert_one(settings)
+        
+        print(f"User {username} registered successfully")
+        return {"message": "User registered successfully"}
+    except Exception as e:
+        print(f"Error in API register: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration error: {str(e)}"
+        )
     user_exists = await db.users.find_one({"username": username})
     if user_exists:
         raise HTTPException(
