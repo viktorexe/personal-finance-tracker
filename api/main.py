@@ -179,11 +179,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # Routes
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    try:
+        return templates.TemplateResponse("index.html", {"request": request})
+    except Exception as e:
+        print(f"Error rendering index: {e}")
+        return HTMLResponse(content="<html><body><h1>Finance Tracker</h1><p>There was an error loading the application. Please try again later.</p></body></html>")
 
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "message": "API is running"}
+
+@app.get("/test")
+async def test_route():
+    return {"message": "Test route is working", "timestamp": str(datetime.utcnow())}
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
