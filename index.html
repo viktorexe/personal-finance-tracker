@@ -176,19 +176,29 @@
                 const username = document.getElementById('loginUsername').value;
                 const password = document.getElementById('loginPassword').value;
                 
+                loginError.textContent = 'Logging in...';
+                console.log('Attempting to login user:', username);
+                
                 try {
-                    const response = await fetch('/token', {
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('password', password);
+                    
+                    const response = await fetch('/api/token', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            'username': username,
-                            'password': password,
-                        }),
+                        body: formData
                     });
                     
-                    const data = await response.json();
+                    console.log('Login response status:', response.status);
+                    
+                    let data;
+                    try {
+                        data = await response.json();
+                        console.log('Login response data:', data);
+                    } catch (e) {
+                        console.error('Error parsing JSON response:', e);
+                        data = { detail: 'Error parsing server response' };
+                    }
                     
                     if (response.ok) {
                         // Store token in localStorage
@@ -223,19 +233,29 @@
                     return;
                 }
                 
+                registerError.textContent = 'Registering...';
+                console.log('Attempting to register user:', username);
+                
                 try {
-                    const response = await fetch('/register', {
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('password', password);
+                    
+                    const response = await fetch('/api/register', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            'username': username,
-                            'password': password,
-                        }),
+                        body: formData
                     });
                     
-                    const data = await response.json();
+                    console.log('Registration response status:', response.status);
+                    
+                    let data;
+                    try {
+                        data = await response.json();
+                        console.log('Registration response data:', data);
+                    } catch (e) {
+                        console.error('Error parsing JSON response:', e);
+                        data = { detail: 'Error parsing server response' };
+                    }
                     
                     if (response.ok) {
                         // Show success message and switch to login tab
