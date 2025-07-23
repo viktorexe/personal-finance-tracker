@@ -17,15 +17,25 @@ from mangum import Mangum
 MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb+srv://drviktorexe:Vansh240703@ttmod2025.9vmzbje.mongodb.net/?retryWrites=true&w=majority&appName=TTMod2025")
 
 # Configure MongoDB client with serverless-friendly settings
-client = motor.motor_asyncio.AsyncIOMotorClient(
-    MONGODB_URI,
-    serverSelectionTimeoutMS=5000,  # Timeout after 5 seconds
-    connectTimeoutMS=10000,  # Timeout after 10 seconds
-    socketTimeoutMS=20000,  # Timeout after 20 seconds
-    maxPoolSize=10,  # Limit connection pool for serverless
-    retryWrites=True  # Enable retry writes for better reliability
-)
-db = client.personal_finance_tracker
+try:
+    client = motor.motor_asyncio.AsyncIOMotorClient(
+        MONGODB_URI,
+        serverSelectionTimeoutMS=5000,  # Timeout after 5 seconds
+        connectTimeoutMS=10000,  # Timeout after 10 seconds
+        socketTimeoutMS=20000,  # Timeout after 20 seconds
+        maxPoolSize=10,  # Limit connection pool for serverless
+        retryWrites=True,  # Enable retry writes for better reliability
+        appname="finance-tracker-vercel"  # Identify the application in MongoDB logs
+    )
+    # Test the connection
+    client.admin.command('ismaster')
+    db = client.personal_finance_tracker
+    print("MongoDB connection successful")
+except Exception as e:
+    print(f"MongoDB connection error: {e}")
+    # Provide a fallback for development/testing
+    client = None
+    db = None
 
 # Security
 SECRET_KEY = os.environ.get("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
@@ -119,9 +129,15 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 async def get_user(username: str):
-    user = await db.users.find_one({"username": username})
-    if user:
-        return User(**user)
+    try:
+        if db is None:
+            raise HTTPException(status_code=503, detail="Database connection not available")
+        user = await db.users.find_one({"username": username})
+        if user:
+            return User(**user)
+    except Exception as e:
+        print(f"Error getting user: {e}")
+        raise HTTPException(status_code=500, detail="Database error")
 
 async def authenticate_user(username: str, password: str):
     user = await get_user(username)
