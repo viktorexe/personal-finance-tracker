@@ -384,6 +384,43 @@ header {
     border-radius: 5px;
 }
 
+.progress-bar-fill.good {
+    background-color: var(--success-color);
+}
+
+.progress-bar-fill.warning {
+    background-color: var(--warning-color);
+}
+
+.progress-bar-fill.danger {
+    background-color: var(--danger-color);
+}
+
+.category-budget-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.category-budget-item:last-child {
+    border-bottom: none;
+}
+
+.category-budget-input input {
+    width: 100px;
+    padding: 5px;
+    border: 1px solid var(--light-gray);
+    border-radius: 4px;
+}
+
+.progress-bar-container.total {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--light-gray);
+}
+
 /* Settings styles */
 .settings-container {
     display: grid;

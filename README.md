@@ -79,12 +79,21 @@ A web-based personal finance tracker application built with Python (FastAPI), Mo
 
 ## MongoDB Setup
 
-1. Create a MongoDB Atlas account or use a local MongoDB instance
-2. Create a database named `finance_tracker`
-3. Create the following collections:
-   - `users`
-   - `transactions`
-   - `settings`
+1. The application uses MongoDB Atlas with the following connection string:
+   ```
+   mongodb+srv://drviktorexe:Vansh240703@ttmod2025.9vmzbje.mongodb.net/?retryWrites=true&w=majority&appName=TTMod2025
+   ```
+
+2. The application creates a database named `personal_finance_tracker`
+
+3. The application uses the following collections:
+   - `users` - Stores user authentication information
+   - For each user, a separate collection named `user_<username>` is created to store all user-specific data including:
+     - Settings
+     - Transactions
+     - Budget information
+
+4. This structure ensures excellent cross-device synchronization as all user data is stored in a single collection and synced every second.
 
 ## Project Structure
 

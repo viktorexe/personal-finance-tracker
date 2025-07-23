@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let userSettings = {};
     let transactions = [];
     let categories = [];
+    let budget = { total_budget: 0, category_budgets: {} };
+    let lastSyncTime = new Date().getTime();
     
     // Fetch user settings
     async function fetchSettings() {
@@ -737,10 +739,207 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Fetch budget
+    async function fetchBudget() {
+        try {
+            const response = await fetch('/api/budget', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                budget = await response.json();
+                updateBudgetUI();
+                return budget;
+            } else {
+                console.error('Failed to fetch budget');
+            }
+        } catch (error) {
+            console.error('Error fetching budget:', error);
+        }
+        
+        return { total_budget: 0, category_budgets: {} };
+    }
+    
+    // Update budget UI
+    function updateBudgetUI() {
+        // Update budget amount
+        document.getElementById('budgetAmount').value = budget.total_budget;
+        
+        // Update category budgets
+        const categoryBudgets = document.getElementById('categoryBudgets');
+        categoryBudgets.innerHTML = '';
+        
+        categories.forEach(category => {
+            const categoryBudget = budget.category_budgets[category] || 0;
+            const item = document.createElement('div');
+            item.className = 'category-budget-item';
+            item.innerHTML = `
+                <div class="category-budget-label">
+                    <span>${category}</span>
+                </div>
+                <div class="category-budget-input">
+                    <input type="number" class="category-budget" data-category="${category}" value="${categoryBudget}">
+                </div>
+            `;
+            categoryBudgets.appendChild(item);
+        });
+        
+        // Update budget progress
+        updateBudgetProgress();
+    }
+    
+    // Update budget progress
+    function updateBudgetProgress() {
+        const budgetProgressBars = document.getElementById('budgetProgressBars');
+        budgetProgressBars.innerHTML = '';
+        
+        // Get current month expenses by category
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const monthTransactions = transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return transactionDate >= monthStart && transactionDate <= monthEnd && t.transaction_type === 'expense';
+        });
+        
+        // Calculate expenses by category
+        const expensesByCategory = {};
+        monthTransactions.forEach(t => {
+            if (!expensesByCategory[t.category]) {
+                expensesByCategory[t.category] = 0;
+            }
+            expensesByCategory[t.category] += t.amount;
+        });
+        
+        // Create progress bars
+        categories.forEach(category => {
+            const categoryBudget = budget.category_budgets[category] || 0;
+            if (categoryBudget <= 0) return; // Skip categories without budget
+            
+            const spent = expensesByCategory[category] || 0;
+            const percentage = Math.min(100, (spent / categoryBudget) * 100);
+            
+            const item = document.createElement('div');
+            item.className = 'progress-bar-container';
+            
+            let statusClass = 'good';
+            if (percentage >= 90) {
+                statusClass = 'danger';
+            } else if (percentage >= 75) {
+                statusClass = 'warning';
+            }
+            
+            item.innerHTML = `
+                <div class="progress-bar-label">
+                    <span>${category}</span>
+                    <span>${formatCurrency(spent, userSettings.currency)} / ${formatCurrency(categoryBudget, userSettings.currency)}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill ${statusClass}" style="width: ${percentage}%"></div>
+                </div>
+            `;
+            
+            budgetProgressBars.appendChild(item);
+        });
+        
+        // Add total budget progress
+        if (budget.total_budget > 0) {
+            const totalSpent = Object.values(expensesByCategory).reduce((sum, amount) => sum + amount, 0);
+            const totalPercentage = Math.min(100, (totalSpent / budget.total_budget) * 100);
+            
+            let statusClass = 'good';
+            if (totalPercentage >= 90) {
+                statusClass = 'danger';
+            } else if (totalPercentage >= 75) {
+                statusClass = 'warning';
+            }
+            
+            const totalItem = document.createElement('div');
+            totalItem.className = 'progress-bar-container total';
+            totalItem.innerHTML = `
+                <div class="progress-bar-label">
+                    <span><strong>Total Budget</strong></span>
+                    <span>${formatCurrency(totalSpent, userSettings.currency)} / ${formatCurrency(budget.total_budget, userSettings.currency)}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill ${statusClass}" style="width: ${totalPercentage}%"></div>
+                </div>
+            `;
+            
+            budgetProgressBars.insertBefore(totalItem, budgetProgressBars.firstChild);
+        }
+    }
+    
+    // Save budget
+    document.getElementById('saveBudget').addEventListener('click', async () => {
+        const totalBudget = parseFloat(document.getElementById('budgetAmount').value) || 0;
+        budget.total_budget = totalBudget;
+        
+        try {
+            const response = await fetch('/api/budget', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(budget)
+            });
+            
+            if (response.ok) {
+                alert('Budget saved successfully!');
+                await fetchBudget();
+            } else {
+                alert('Failed to save budget.');
+            }
+        } catch (error) {
+            console.error('Error saving budget:', error);
+            alert('An error occurred while saving the budget.');
+        }
+    });
+    
+    // Save category budgets
+    document.getElementById('saveCategoryBudgets').addEventListener('click', async () => {
+        const categoryBudgetInputs = document.querySelectorAll('.category-budget');
+        const categoryBudgets = {};
+        
+        categoryBudgetInputs.forEach(input => {
+            const category = input.dataset.category;
+            const amount = parseFloat(input.value) || 0;
+            categoryBudgets[category] = amount;
+        });
+        
+        budget.category_budgets = categoryBudgets;
+        
+        try {
+            const response = await fetch('/api/budget', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(budget)
+            });
+            
+            if (response.ok) {
+                alert('Category budgets saved successfully!');
+                await fetchBudget();
+            } else {
+                alert('Failed to save category budgets.');
+            }
+        } catch (error) {
+            console.error('Error saving category budgets:', error);
+            alert('An error occurred while saving the category budgets.');
+        }
+    });
+    
     // Initialize data
     async function initializeData() {
         await fetchSettings();
         await fetchTransactions();
+        await fetchBudget();
     }
     
     // Start the app
@@ -748,7 +947,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up real-time sync (every second)
     setInterval(async () => {
-        await fetchSettings();
-        await fetchTransactions();
+        const currentTime = new Date().getTime();
+        
+        // Only sync if at least 1 second has passed since last sync
+        if (currentTime - lastSyncTime >= 1000) {
+            lastSyncTime = currentTime;
+            await fetchSettings();
+            await fetchTransactions();
+            await fetchBudget();
+        }
     }, 1000);
 });
