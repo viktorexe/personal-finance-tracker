@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -83,6 +83,14 @@ app = FastAPI(
 # Add exception handlers
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    # Return JSON for API routes
+    if request.url.path.startswith('/api/'):
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal server error: {str(exc)}"}
+        )
+    
+    # Return HTML for other routes
     return HTMLResponse(
         content=f"""
         <html>
@@ -119,9 +127,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
-
-# Include routers
-app.include_router(direct_register_router, prefix="/api")
 
 # Include routers
 app.include_router(direct_register_router, prefix="/api")
@@ -305,31 +310,38 @@ async def api_login_for_access_token(form_data: OAuth2PasswordRequestForm = Depe
 
 @app.post("/register")
 async def register(username: str = Form(...), password: str = Form(...)):
-    user_exists = await db.users.find_one({"username": username})
-    if user_exists:
+    try:
+        user_exists = await db.users.find_one({"username": username})
+        if user_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already registered"
+            )
+        
+        hashed_password = get_password_hash(password)
+        user = {"username": username, "hashed_password": hashed_password}
+        await db.users.insert_one(user)
+        
+        # Create a user-specific collection for all user data
+        user_collection = db[f"user_{username}"]
+        
+        # Create initial settings for the user
+        settings = {
+            "type": "settings",
+            "currency": "USD",
+            "theme": "light",
+            "categories": ["Food", "Transport", "Housing", "Entertainment", "Utilities", "Other"],
+            "last_updated": datetime.utcnow()
+        }
+        await user_collection.insert_one(settings)
+        
+        return {"message": "User registered successfully"}
+    except Exception as e:
+        print(f"Error in register: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration error: {str(e)}"
         )
-    
-    hashed_password = get_password_hash(password)
-    user = {"username": username, "hashed_password": hashed_password}
-    await db.users.insert_one(user)
-    
-    # Create a user-specific collection for all user data
-    user_collection = db[f"user_{username}"]
-    
-    # Create initial settings for the user
-    settings = {
-        "type": "settings",
-        "currency": "USD",
-        "theme": "light",
-        "categories": ["Food", "Transport", "Housing", "Entertainment", "Utilities", "Other"],
-        "last_updated": datetime.utcnow()
-    }
-    await user_collection.insert_one(settings)
-    
-    return {"message": "User registered successfully"}
 
 @app.post("/api/register")
 async def api_register(username: str = Form(...), password: str = Form(...)):
@@ -367,31 +379,6 @@ async def api_register(username: str = Form(...), password: str = Form(...)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration error: {str(e)}"
         )
-    user_exists = await db.users.find_one({"username": username})
-    if user_exists:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
-    
-    hashed_password = get_password_hash(password)
-    user = {"username": username, "hashed_password": hashed_password}
-    await db.users.insert_one(user)
-    
-    # Create a user-specific collection for all user data
-    user_collection = db[f"user_{username}"]
-    
-    # Create initial settings for the user
-    settings = {
-        "type": "settings",
-        "currency": "USD",
-        "theme": "light",
-        "categories": ["Food", "Transport", "Housing", "Entertainment", "Utilities", "Other"],
-        "last_updated": datetime.utcnow()
-    }
-    await user_collection.insert_one(settings)
-    
-    return {"message": "User registered successfully"}
 
 # API endpoints
 @app.post("/api/transactions")

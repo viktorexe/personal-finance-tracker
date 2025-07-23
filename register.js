@@ -4,6 +4,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const registerError = document.getElementById('registerError');
     
     if (registerForm && registerError) {
+        // Test API connection first
+        fetch('/api/direct-test')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('API connection test failed');
+            })
+            .then(data => {
+                console.log('API test successful:', data);
+            })
+            .catch(error => {
+                console.error('API test failed:', error);
+                registerError.textContent = 'Warning: API connection test failed. Registration may not work.';
+                registerError.style.color = '#ff9800';
+            });
+        
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -34,10 +51,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 let data;
                 try {
-                    data = await response.json();
-                    console.log('Registration response data:', data);
+                    if (response.headers.get('content-type')?.includes('application/json')) {
+                        data = await response.json();
+                        console.log('Registration response data:', data);
+                    } else {
+                        const text = await response.text();
+                        console.error('Non-JSON response:', text);
+                        data = { detail: 'Server returned non-JSON response' };
+                    }
                 } catch (e) {
-                    console.error('Error parsing JSON response:', e);
+                    console.error('Error parsing response:', e);
                     data = { detail: 'Error parsing server response' };
                 }
                 
