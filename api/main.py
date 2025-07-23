@@ -13,6 +13,7 @@ import motor.motor_asyncio
 import os
 import mangum
 from mangum import Mangum
+from api.direct_register import router as direct_register_router
 
 # MongoDB connection
 MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb+srv://drviktorexe:Vansh240703@ttmod2025.9vmzbje.mongodb.net/?retryWrites=true&w=majority&appName=TTMod2025")
@@ -118,6 +119,9 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+# Include routers
+app.include_router(direct_register_router, prefix="/api")
 
 # Get the directory of the current file
 import pathlib
