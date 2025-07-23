@@ -68,6 +68,37 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
+# Add exception handlers
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return HTMLResponse(
+        content=f"""
+        <html>
+            <head>
+                <title>Error</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; padding: 2rem; line-height: 1.6; }}
+                    .error-container {{ max-width: 800px; margin: 0 auto; background: #f8f9fa; padding: 2rem; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                    h1 {{ color: #e74c3c; }}
+                    pre {{ background: #f1f1f1; padding: 1rem; overflow-x: auto; }}
+                    .back-link {{ margin-top: 2rem; }}
+                    .back-link a {{ color: #3498db; text-decoration: none; }}
+                </style>
+            </head>
+            <body>
+                <div class="error-container">
+                    <h1>Something went wrong</h1>
+                    <p>The application encountered an error. Please try again later.</p>
+                    <div class="back-link">
+                        <a href="/">← Go back to homepage</a>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """,
+        status_code=500
+    )
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,

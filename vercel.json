@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/main.py",
+      "src": "index.py",
       "use": "@vercel/python"
     },
     {
@@ -16,12 +16,14 @@
       "dest": "/static/$1"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/main.py"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/api/main.py"
+      "dest": "/index.py"
     }
-  ]
+  ],
+  "env": {
+    "APP_MODULE": "api.main:app"
+  }
 }
